@@ -16,15 +16,18 @@ class Perceptron:
 
 	def __init__(self, eta=0.01, n_iter=50, random_state=1):
 
+		# eta          : learning rate
+		# n_iter       :
+		# random_state : 
 		self.eta = eta
 		self.n_iter = n_iter
 		self.random_state = random_state
 
-	def fit(self,x,y):
+	def fit(self,X,y):
 		# ---
 		# data training
 		# ---
-		# x			: array-like, shape = [n_samples,n_features] 
+		# X			: array-like, shape = [n_samples,n_features] : Not DataFrame
 		#
 		# y			: array-like, shape = [n_samples]
 		#             target_samples
@@ -33,14 +36,15 @@ class Perceptron:
 		# self.object
 
 		rgen = np.random.RandomState(self.random_state)
-		self.w_ = regen.normal(loc=0.0,scale=0.01,size=X.shape[1])
+		self.w_ = rgen.normal(loc=0.0,scale=0.01,size=X.shape[1])
 		self.b_ = np.float_(0.)
 		self.errors_ = []
-
+		# epoch - iteration
 		for _ in range(self.n_iter):
 			errors = 0
+			# looping feature xi in X (row-wise)
 			for xi, target in zip(X,y):
-				update = self.eta * (target - self.predict(xi))
+				update = self.eta * (target - self.predict(xi))	# <<< predict()
 				self.w_ += update * xi
 				self.b_ += update
 				errors += int(update != 0.)
@@ -53,7 +57,7 @@ class Perceptron:
 
 	def predict(self,X):
 		# 'step-function'
-		return np.where(self.net_input(X) >= 0.0, 1, 0.)
+		return np.where(self.net_input(X) >= 0.0, 1, 0.)        # <<< net_input()
 
 
 if __name__=='__main__':

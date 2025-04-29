@@ -3,12 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-s = 'https://archive.ics.uci.edu/ml/'\
-	'machine-learning-databases/iris/iris.data'
+s = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
 
 df = pd.read_csv(s,header=None,encoding='UTF-8')
 
+print(' * data frame snippet - head 100')
+#
+# have a look for the first 100 rows
+#
+for i in range(100):
+	print(df.iloc[i,:].values) 
+
 y = df.iloc[0:100,4].values # values -> return numpy.array : extract row 0:100 / column 4 -> will be used as target later
+                            # values !!! > return numpy array
 print('----------------------------------')
 print(y,type(y))
 print('----------------------------------')
