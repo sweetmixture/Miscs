@@ -20,12 +20,12 @@ print(f'raveled - yvectors : {yv}')
 
 xy = np.array([xv,yv]).T
 print(xy)
-print(xy.shape)	# numpy array.shape !!! # DataFrame.values !!!
+print(xy.shape)	# numpy array.shape !!! # DataFrame.values !!! > note values return numpy array
 
 arr = np.arange(15)
 arr = np.arange(12)
 
-arr = arr.reshape(xy.shape)
+arr = arr.reshape(xy.shape) # reshaping 
 print(arr)
 
 plt.show()

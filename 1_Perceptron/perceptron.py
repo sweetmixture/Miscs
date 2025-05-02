@@ -36,7 +36,7 @@ class Perceptron:
 		# self.object
 
 		rgen = np.random.RandomState(self.random_state)
-		self.w_ = rgen.normal(loc=0.0,scale=0.01,size=X.shape[1])
+		self.w_ = rgen.normal(loc=0.0,scale=0.01,size=X.shape[1]) # length of w vector == number of features : X.shape[1] | X.shape[0] > number of data set
 		self.b_ = np.float_(0.)
 		self.errors_ = []
 		# epoch - iteration
@@ -61,5 +61,4 @@ class Perceptron:
 
 
 if __name__=='__main__':
-
 	None
