@@ -59,6 +59,5 @@ class Perceptron:
 		# 'step-function'
 		return np.where(self.net_input(X) >= 0.0, 1, 0.)        # <<< net_input()
 
-
 if __name__=='__main__':
 	None

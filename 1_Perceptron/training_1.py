@@ -65,6 +65,8 @@ def plot_decision_regions(X, y, classifier, resolution=0.02):
 	# Caution !
 	# here, predict() of classifier uses the weight that obtained above !
 	# lab (label)
+	val = np.array([xx1.ravel(),xx2.ravel()]).T
+	print('val:',val,val.shape)
 	lab = classifier.predict(np.array([xx1.ravel(),xx2.ravel()]).T)	# 1d array # Transpose to (N, 2) form
 	print('lab raw :',lab,lab.shape) # result of classifying 71675 data
 	lab = lab.reshape(xx1.shape) # reshaping 1d like xx1.shape
