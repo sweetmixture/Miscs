@@ -13,7 +13,7 @@ s = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
 df = pd.read_csv(s,header=None,encoding='UTF-8')
 # target
 y = df.iloc[0:100,4].values # save species : 'Iris-setosa' / 'Iris-versicolor'
-y = np.where(y=='Iris-setosa',0,1)  # if 'Iris-setosa' > 1, else > 0 : return numpy array
+y = np.where(y=='Iris-setosa',0,1)  # if 'Iris-setosa' > 1, else > 0 : return numpy array : actually the 'else' is formed of two-species
 # features
 X = df.iloc[0:100,[0,2]].values # to numpy array # print(X.shape) : numpy.shape
 

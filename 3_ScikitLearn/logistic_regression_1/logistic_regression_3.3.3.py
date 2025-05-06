@@ -1,5 +1,9 @@
+import sys
+import matplotlib.pyplot as plt
 from sklearn import datasets
 import numpy as np
+from LogisticRegression import LogisticRegressionGD	# only works for binary classification problem
+from plot import plot_decision_regions
 
 iris = datasets.load_iris()
 
@@ -12,9 +16,9 @@ print('class label:',np.unique(y)) # [0,1,2] > Iris-setosa, Iris-versicolor, Iri
 # data division : train / test
 
 from sklearn.model_selection import train_test_split # works for array-like object
-rs = 1
+rs = 4
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=int(f'{rs}'), stratify=y) # stratification
-
+#                                                         ^^^^^^^^^ default 0.25
 # result of startification
 print('y       label count: ', np.bincount(y))
 print('y train label count: ', np.bincount(y_train))
@@ -29,6 +33,33 @@ sc = StandardScaler()
 sc.fit(X_train) # calculate feature avg. std.
 X_train_std = sc.transform(X_train)
 X_test_std  = sc.transform(X_test) # here use same avg. std. obtained from X_train !
+#print(y_train,y_train.shape)
+#print(y_train == 0 )
+#print(y_train == 1 )
+#print((y_train == 0) | (y_train == 1))
+X_train_01_subset = X_train_std[ (y_train == 0) | (y_train == 1) ] # y_train == 0 returns list of Trues/Falses : collect only target 0 or 1
+y_train_01_subset = y_train[ (y_train == 0) | (y_train == 1) ]
+
+lrgd = LogisticRegressionGD(eta=0.3, n_iter=1000, random_state=1)
+
+lrgd.fit(X_train_01_subset, y_train_01_subset)
+
+plot_decision_regions(X=X_train_01_subset, y=y_train_01_subset, classifier=lrgd)
+plt.xlabel('Petal length [std]')
+plt.ylabel('Petal width [std]')
+plt.tight_layout()
+plt.legend(loc='upper left')
+
+plt.show()
+
+sys.exit(1)
+
+
+
+
+
+
+
 
 # Perceptron
 from sklearn.linear_model import Perceptron
