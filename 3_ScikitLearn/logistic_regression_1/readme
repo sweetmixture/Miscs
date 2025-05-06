@@ -1,0 +1,16 @@
+#
+# 06.05.25
+#
+include deprecated feature (multi_class arg in LogisticRegression()) fix
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
+'''
+    FutureWarning: 'multi_class' was deprecated in version 1.5 and will be removed in 1.7.
+    Use OneVsRestClassifier(LogisticRegression(..)) instead. Leave it to its default value to avoid this warning.
+
+    FutureWarning: 'multi_class' was deprecated in version 1.5 and will be removed in 1.7.
+    From then on, it will always use 'multinomial'. Leave it to its default value to avoid this warning.
+'''
+lr = OneVsRestClassifier(LogisticRegression(C=100.0,solver='lbfgs'))            # C : over-fitting regularisation parameter
+#lr = LogisticRegression(C=100.0, solver='lbfgs')
