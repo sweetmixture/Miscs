@@ -40,8 +40,9 @@ X_train_std = sc.transform(X_train)
 X_test_std  = sc.transform(X_test)
 
 # model fitting
-svm = SVC(kernel='linear', C=1.0, random_state=1)
+#svm = SVC(kernel='linear', C=1.0, random_state=1)  # linear 
 #svm = SVC(kernel='rbf', C=10**12, random_state=1)	# nonlinear kernel 'rbf'
+svm = SVC(kernel='rbf', gamma=0.5 , C=1.0, random_state=1)	# nonlinear kernel 'rbf' # 'gamma' term in the rbf kernel function : large gamma - overfitting
 svm.fit(X_train_std,y_train)
 
 X_combined_std = np.vstack((X_train_std,X_test_std))
