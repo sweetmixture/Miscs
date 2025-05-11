@@ -14,22 +14,21 @@ y = iris.target
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 1, stratify = y)
 
-# Random Forest -----------------------------------------------
-from sklearn.ensemble import RandomForestClassifier
+# K Nearest Neighbours -----------------------------------------------
+from sklearn.neighbors import KNeighborsClassifier
 
-forest = RandomForestClassifier(
-	n_estimators = 100,
-	random_state = 1,
-	max_depth = 10,
-	n_jobs = 4,			# in parallel?
+knn = KNeighborsClassifier(
+	n_neighbors = 5,
+	p = 2,
+	metric = 'minkowski',
 )
 
-forest.fit(X_train,y_train)
+knn.fit(X_train,y_train)
 
 X_combined = np.vstack((X_train,X_test))
 y_combined = np.hstack((y_train,y_test))
 
-plot_decision_regions(X_combined,y_combined,classifier=forest,test_idx=range(105,150))
+plot_decision_regions(X_combined,y_combined,classifier=knn,test_idx=range(105,150))
 plt.xlabel('Petal legnth [cm]')
 plt.ylabel('Petal width [cm]')
 plt.legend(loc='upper left')
@@ -38,7 +37,7 @@ plt.show()
 
 plt.show()
 
-predict_result = forest.predict(X_combined)
+predict_result = knn.predict(X_combined)
 print(predict_result,predict_result.shape)
 
 result = np.where( predict_result == y_combined, 1, 0 )
