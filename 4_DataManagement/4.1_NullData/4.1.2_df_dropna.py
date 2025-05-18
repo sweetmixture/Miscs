@@ -3,7 +3,6 @@ import numpy as np
 
 df =  pd.read_csv('sample.csv',sep=',')
 
-
 print(' * org data --------')
 print(df)
 print(df.keys())
@@ -54,4 +53,12 @@ print(df2)
 df2 = df.dropna(subset=[ k for k in df.index ], axis=1) # for all rows
 df2 = df.dropna(subset=df.index, axis=1) # for all rows # this is the same
 print(df2)
+
+for col in df.columns:
+	for idx in df.index:
+		print( np.isnan(df.loc[idx,col]), np.nan == df.loc[idx,col] ) # np.nan == X not working !
+
+for i in range(df.shape[0]):
+	for j in range(df.shape[1]):
+		print(df.iloc[i,j], np.isnan(df.iloc[i,j]))
 

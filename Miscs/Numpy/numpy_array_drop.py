@@ -33,5 +33,5 @@ print(grid_space_new)
 plt.plot( grid_space_new[:,0], grid_space_new[:,1], marker='o', linestyle='')
 plt.show()
 
-grid_space_new = np.delete(grid_space,-1,axis=1) # axis=1 refers to column, drop the last row
+grid_space_new = np.delete(grid_space,-1,axis=1) # axis=1 refers to column
 print(grid_space_new)
