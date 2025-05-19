@@ -48,3 +48,5 @@ df_org = df.copy()
 df_org['size'] = df['size'].map(inv_size_mapping)
 print(df_org)
 print(df)
+
+df.to_csv('sample.csv',sep=',', index=False)
