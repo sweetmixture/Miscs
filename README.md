@@ -6,6 +6,7 @@ d 데이터 업데이트
 → PASS면 고객 화면 노출
 → FAIL이면 숨김 또는 “데이터 안정화 중” 처리
 
+```
 import numpy as np
 from scipy.interpolate import interp1d
 
@@ -22,8 +23,9 @@ def align_curves(dx, dy, rul_x, rul_y, n=1000):
     rul_common = rul_func(x_common)
 
     return x_common, d_common, rul_common
+```
 
-
+```
 def calc_fit_metrics(x, d, rul):
     err = rul - d
 
@@ -46,7 +48,9 @@ def calc_fit_metrics(x, d, rul):
         "corr": corr,
         "r2": r2,
     }
+```
 
+```
 RMSE / MAE 낮음     → 전체적으로 잘 맞음
 Bias 양수           → rul이 d보다 지속적으로 높게 예측
 Bias 음수           → rul이 d보다 지속적으로 낮게 예측
@@ -225,3 +229,4 @@ status = "WARNING"     # 표시 가능하지만 주의
 status = "FAIL_MODEL"  # 모델 정합성 부족
 status = "FAIL_DATA"   # 입력 데이터 품질 부족
 
+```
