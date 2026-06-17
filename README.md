@@ -304,3 +304,79 @@ plt.show()
 ```
 
 
+
+```
+import ast
+import pandas as pd
+
+def add_weighted_violation_score(
+    df,
+    weights,
+    violations_col="violations",
+    grad_std_threshold=5.0,
+):
+    """
+    df["violations"]에 들어있는 metric 리스트를 기준으로
+    metric별 weight를 합산하여 score_violations 컬럼 추가.
+
+    단, grad_std는 실제 row["grad_std"] 값이 grad_std_threshold보다 클 때만
+    weight를 반영.
+    """
+
+    def parse_violations(vs):
+        if isinstance(vs, str):
+            try:
+                vs = ast.literal_eval(vs)
+            except Exception:
+                vs = [vs]
+
+        if vs is None:
+            return []
+
+        if isinstance(vs, float) and pd.isna(vs):
+            return []
+
+        return vs
+
+    def calc_score(row):
+        vs = parse_violations(row[violations_col])
+
+        score = 0.0
+
+        for v in vs:
+            if v == "grad_std":
+                if row["grad_std"] > grad_std_threshold:
+                    score += weights.get(v, 1.0)
+            else:
+                score += weights.get(v, 1.0)
+
+        return score
+
+    df = df.copy()
+
+    df["score_violations"] = df.apply(
+        calc_score,
+        axis=1
+    )
+
+    return df
+
+weights = {
+    "rmse": 3.0,
+    "mae": 2.0,
+    "bias": 2.0,
+    "max_error": 2.5,
+    "corr": 1.5,
+    "r2": 1.5,
+    "grad_std": 1.0,
+    "curvature_noise": 3.0,
+    "diff_std": 2.0,
+}
+
+df = add_weighted_violation_score(
+    df,
+    weights,
+    grad_std_threshold=5.0
+)
+```
+
