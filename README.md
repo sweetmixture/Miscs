@@ -242,3 +242,65 @@ for _, row in df_sorted.head(10).iterrows():
 ```
 
 
+```
+def add_weighted_violation_score(df, weights, violations_col="violations"):
+    """
+    df["violations"]에 들어있는 metric 리스트를 기준으로
+    metric별 weight를 합산하여 score_violations 컬럼 추가.
+    """
+
+    def calc_score(vs):
+        if isinstance(vs, str):
+            # CSV에서 읽어서 "['rmse', 'mae']" 같은 문자열인 경우 처리
+            import ast
+            try:
+                vs = ast.literal_eval(vs)
+            except Exception:
+                vs = [vs]
+
+        if vs is None:
+            return 0.0
+
+        return sum(weights.get(v, 1.0) for v in vs)
+
+    df = df.copy()
+    df["score_violations"] = df[violations_col].apply(calc_score)
+
+    return df
+
+
+weights = {
+    "rmse": 3.0,
+    "mae": 2.0,
+    "bias": 2.0,
+    "max_error": 2.5,
+    "corr": 1.5,
+    "r2": 1.5,
+    "grad_std": 1.0,
+    "curvature_noise": 3.0,
+    "diff_std": 2.0,
+}
+
+df = add_weighted_violation_score(df, weights)
+
+df_sorted = df.sort_values(
+    by="score_violations",
+    ascending=False
+).reset_index(drop=True)
+
+df_sorted[
+    ["file", "n_violations", "score_violations", "violations"]
+].head(20)
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(8, 5))
+plt.hist(df["score_violations"], bins=20)
+plt.xlabel("score_violations")
+plt.ylabel("count")
+plt.title("Weighted Violation Score Distribution")
+plt.grid(True)
+plt.show()
+```
+
+
