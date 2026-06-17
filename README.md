@@ -131,3 +131,114 @@ df["violations"] = df.apply(
 
 df["n_violations"] = df["violations"].apply(len)
 ```
+
+
+```
+df_sorted = df.sort_values(
+    by="n_violations",
+    ascending=False
+).reset_index(drop=True)
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_file_curve(file_path, title=None):
+    fdf = pd.read_csv(file_path)
+
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(
+        fdf["fieldf_x"],
+        fdf["fieldf_y"],
+        marker="o",
+        linestyle="-",
+        label="data"
+    )
+
+    plt.plot(
+        fdf["cmodel_x"],
+        fdf["cmodel_y"],
+        linestyle="--",
+        label="rul"
+    )
+
+    if title is None:
+        title = file_path
+
+    plt.title(title)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+
+for _, row in df_sorted.head(10).iterrows():
+    file_path = row["file"]
+    n_v = row["n_violations"]
+
+    title = f"{file_path} | n_violations={n_v}"
+
+    plot_file_curve(file_path, title=title)
+
+
+
+target_n = 3
+
+df_target = df[df["n_violations"] == target_n]
+
+for _, row in df_target.iterrows():
+    file_path = row["file"]
+
+    title = f"{file_path} | n_violations={target_n}"
+
+    plot_file_curve(file_path, title=title)
+
+
+
+
+def plot_by_violation_group(df, max_per_group=5):
+    df_sorted = df.sort_values(
+        by="n_violations",
+        ascending=False
+    )
+
+    for n_v, g in df_sorted.groupby("n_violations", sort=False):
+        print(f"\n===== n_violations = {n_v} =====")
+
+        for _, row in g.head(max_per_group).iterrows():
+            file_path = row["file"]
+
+            title = f"{file_path} | n_violations={n_v}"
+
+            plot_file_curve(file_path, title=title)
+
+plot_by_violation_group(df, max_per_group=3)
+
+
+
+
+
+def plot_from_summary_row(row):
+    file_path = row["file"]
+
+    title = (
+        f"{file_path}\n"
+        f"n_violations={row['n_violations']} | "
+        f"rmse={row['rmse']:.4g}, "
+        f"mae={row['mae']:.4g}, "
+        f"corr={row['corr']:.4g}, "
+        f"r2={row['r2']:.4g}"
+    )
+
+    plot_file_curve(file_path, title=title)
+
+for _, row in df_sorted.head(10).iterrows():
+    plot_from_summary_row(row)
+```
+
+
