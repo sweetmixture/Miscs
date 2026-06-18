@@ -1,4 +1,65 @@
 ```
+import numpy as np
+
+def _step_score_from_series(x, values, edge_frac=0.2, eps=1e-8):
+    """head/tail 구간을 합쳐 공통 슬로프+레벨차를 추정하고,
+    diff 기반 scale-free jump 탐지와 결합해 step_score를 계산하는 공용 헬퍼."""
+    n = len(values)
+    edge = max(int(n * edge_frac), 5)
+
+    x_head, v_head = x[:edge], values[:edge]
+    x_tail, v_tail = x[-edge:], values[-edge:]
+
+    X = np.concatenate([x_head, x_tail])
+    V = np.concatenate([v_head, v_tail])
+    is_tail = np.concatenate([np.zeros(edge), np.ones(edge)])
+
+    A = np.column_stack([X, np.ones_like(X), is_tail])
+    coeffs, *_ = np.linalg.lstsq(A, V, rcond=None)
+    resid = V - A @ coeffs
+    dof = max(len(V) - 3, 1)
+    sigma_resid = max(np.sqrt(np.sum(resid**2) / dof), eps)
+    persistence_ratio = np.abs(coeffs[2]) / sigma_resid
+
+    dv = np.diff(values)
+    med_dv = np.median(dv)
+    mad_dv = max(np.median(np.abs(dv - med_dv)) * 1.4826, eps)
+    jump_z = np.max(np.abs(dv - med_dv)) / mad_dv
+
+    return min(jump_z, persistence_ratio)
+
+
+def calc_fit_metrics(x, d, rul, eps=1e-8, edge_frac=0.2):
+    err = rul - d
+    n = len(err)
+
+    rmse = np.sqrt(np.mean(err**2))
+    mae = np.mean(np.abs(err))
+    bias = np.mean(err)
+    max_err = np.max(np.abs(err))
+
+    if np.std(d) < eps or np.std(rul) < eps:
+        corr = np.nan
+    else:
+        corr = np.corrcoef(d, rul)[0, 1]
+
+    ss_res = np.sum((d - rul) ** 2)
+    ss_tot = np.sum((d - np.mean(d)) ** 2)
+    r2 = 1 - ss_res / ss_tot if ss_tot > eps else np.nan
+
+    step_score_model = _step_score_from_series(x, err, edge_frac, eps)
+    step_score_data = _step_score_from_series(x, d, edge_frac, eps)
+
+    return {
+        "rmse": rmse, "mae": mae, "bias": bias, "max_error": max_err,
+        "corr": corr, "r2": r2,
+        "step_score_model": step_score_model,
+        "step_score_data": step_score_data,
+    }
+
+```
+
+```
 def _robust_step_score(err, edge_frac=0.2, eps=1e-8):
     """잔차 배열에서 CUSUM + persistence 기반 step_score를 계산하는 공용 헬퍼."""
     n = len(err)
