@@ -1,4 +1,22 @@
 ```
+def _robust_step_score(err, edge_frac=0.2, eps=1e-8):
+    """잔차 배열에서 CUSUM + persistence 기반 step_score를 계산하는 공용 헬퍼."""
+    n = len(err)
+    err_diff = np.diff(err)
+    mad = np.median(np.abs(err_diff - np.median(err_diff)))
+    sigma_robust = max(mad * 1.4826 / np.sqrt(2), np.std(err) * 0.05, eps)
+
+    cusum = np.cumsum(err - np.mean(err))
+    cusum_stat = np.max(np.abs(cusum)) / (sigma_robust * np.sqrt(n))
+
+    edge = max(int(n * edge_frac), 3)
+    head = np.median(err[:edge])
+    tail = np.median(err[-edge:])
+    persistence_ratio = np.abs(tail - head) / sigma_robust
+
+    return min(cusum_stat, persistence_ratio)
+
+
 def calc_fit_metrics(x, d, rul, eps=1e-8, edge_frac=0.2):
     err = rul - d
     n = len(err)
