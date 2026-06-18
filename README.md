@@ -1,4 +1,30 @@
 ```
+from scipy.stats import theilslopes
+
+def calc_step_metrics(x, d, eps=1e-8, edge_frac=0.2):
+    slope, intercept, _, _ = theilslopes(d, x)   # robust 기준 트렌드
+    trend = slope * x + intercept
+    err = d - trend
+    n = len(err)
+
+    err_diff = np.diff(err)
+    mad = np.median(np.abs(err_diff - np.median(err_diff)))
+    sigma_robust = max(mad * 1.4826 / np.sqrt(2), np.std(err) * 0.05, eps)
+
+    cusum = np.cumsum(err - np.mean(err))
+    cusum_stat = np.max(np.abs(cusum)) / (sigma_robust * np.sqrt(n))
+
+    edge = max(int(n * edge_frac), 3)
+    head = np.median(err[:edge])
+    tail = np.median(err[-edge:])
+    persistence_ratio = np.abs(tail - head) / sigma_robust
+
+    step_score = min(cusum_stat, persistence_ratio)
+    return {"step_score": step_score}
+
+```
+
+```
 def calc_fit_metrics(x, d, rul, eps=1e-8, edge_frac=0.2):
     err = rul - d
     n = len(err)
