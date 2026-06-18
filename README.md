@@ -1,26 +1,35 @@
 ```
-from scipy.stats import theilslopes
-
-def calc_step_metrics(x, d, eps=1e-8, edge_frac=0.2):
-    slope, intercept, _, _ = theilslopes(d, x)   # robust 기준 트렌드
-    trend = slope * x + intercept
-    err = d - trend
+def calc_fit_metrics(x, d, rul, eps=1e-8, edge_frac=0.2):
+    err = rul - d
     n = len(err)
 
-    err_diff = np.diff(err)
-    mad = np.median(np.abs(err_diff - np.median(err_diff)))
-    sigma_robust = max(mad * 1.4826 / np.sqrt(2), np.std(err) * 0.05, eps)
+    rmse = np.sqrt(np.mean(err**2))
+    mae = np.mean(np.abs(err))
+    bias = np.mean(err)
+    max_err = np.max(np.abs(err))
 
-    cusum = np.cumsum(err - np.mean(err))
-    cusum_stat = np.max(np.abs(cusum)) / (sigma_robust * np.sqrt(n))
+    if np.std(d) < eps or np.std(rul) < eps:
+        corr = np.nan
+    else:
+        corr = np.corrcoef(d, rul)[0, 1]
 
-    edge = max(int(n * edge_frac), 3)
-    head = np.median(err[:edge])
-    tail = np.median(err[-edge:])
-    persistence_ratio = np.abs(tail - head) / sigma_robust
+    ss_res = np.sum((d - rul) ** 2)
+    ss_tot = np.sum((d - np.mean(d)) ** 2)
+    r2 = 1 - ss_res / ss_tot if ss_tot > eps else np.nan
 
-    step_score = min(cusum_stat, persistence_ratio)
-    return {"step_score": step_score}
+    step_score_model = _robust_step_score(err, edge_frac, eps)
+
+    slope, intercept, _, _ = theilslopes(d, x)
+    err_raw = d - (slope * x + intercept)
+    step_score_data = _robust_step_score(err_raw, edge_frac, eps)
+
+    return {
+        "rmse": rmse, "mae": mae, "bias": bias, "max_error": max_err,
+        "corr": corr, "r2": r2,
+        "step_score_model": step_score_model,
+        "step_score_data": step_score_data,
+    }
+
 
 ```
 
