@@ -1,4 +1,25 @@
 ```
+import os
+
+def main():
+    # 시스템 전체 코어 수 (taskset 영향 없음)
+    total_cores = os.cpu_count()
+
+    # 실제로 이 프로세스가 사용 가능한 코어 집합 (taskset 영향 받음)
+    available_cores = os.sched_getaffinity(0)
+    usable_count = len(available_cores)
+
+    print(f"시스템 전체 코어 수 (os.cpu_count()): {total_cores}")
+    print(f"실제 사용 가능한 코어 번호 (os.sched_getaffinity(0)): {sorted(available_cores)}")
+    print(f"실제 사용 가능한 코어 개수: {usable_count}")
+
+if __name__ == "__main__":
+    main()
+
+```
+
+
+```
 import numpy as np
 
 def _step_score_from_series(x, values, edge_frac=0.2, eps=1e-8):
