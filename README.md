@@ -1,4 +1,64 @@
 ```
+#!/bin/bash
+set -euo pipefail
+
+SRC_BASE="s3/path"
+DST_BASE="s3/new_path"
+STATE_FILE="$HOME/.mc_sync_state"
+LOCK_FILE="$HOME/.mc_sync.lock"
+PARALLEL=20
+DEFAULT_START_DATE="20240101"   # 최초 실행 시 시작점
+
+# 동시 실행 방지 (크론이 겹쳐 돌아가는 것 방지)
+exec 200>"$LOCK_FILE"
+flock -n 200 || { echo "이미 실행 중입니다. 종료."; exit 1; }
+
+TODAY=$(date +%Y%m%d)
+
+if [ -f "$STATE_FILE" ]; then
+  START_DATE=$(cat "$STATE_FILE")
+else
+  START_DATE="$DEFAULT_START_DATE"
+fi
+
+echo "[$(date)] 동기화 시작: ${START_DATE} ~ ${TODAY}"
+
+d="$START_DATE"
+while [ "$d" -le "$TODAY" ]; do
+  echo "  -> 날짜 처리 중: $d"
+
+  # 해당 날짜 폴더의 sitecode 목록만 조회 (비재귀, 가벼움)
+  SITECODES=$(mc ls "${SRC_BASE}/${d}/" 2>/dev/null | awk '{print $NF}' | sed 's:/$::')
+
+  if [ -z "$SITECODES" ]; then
+    echo "     (해당 날짜 데이터 없음, 스킵)"
+    d=$(date -d "${d} +1 day" +%Y%m%d)
+    continue
+  fi
+
+  export SRC_BASE DST_BASE d
+  echo "$SITECODES" | xargs -P "$PARALLEL" -I{} bash -c '
+    sitecode="$1"
+    src="${SRC_BASE}/${d}/${sitecode}/000/bms/${sitecode}_bms_rs_${d}.parquet"
+    dst="${DST_BASE}/${sitecode}/${sitecode}_bms_rs_${d}.parquet"
+    mc cp "$src" "$dst" >/dev/null 2>&1 \
+      && echo "     [OK] $sitecode" \
+      || echo "     [스킵/실패] $sitecode (원본 없거나 아직 미도착)"
+  ' _ {}
+
+  d=$(date -d "${d} +1 day" +%Y%m%d)
+done
+
+# 오늘 하루는 아직 데이터가 덜 들어왔을 수 있으니 확정하지 않고,
+# "오늘"부터 다시 검증하도록 상태 저장 (오늘자는 다음 실행에 재확인)
+echo "$TODAY" > "$STATE_FILE"
+
+echo "[$(date)] 동기화 완료. 다음 실행 시 ${TODAY}부터 재검증."
+
+```
+
+
+```
 import os
 
 def main():
