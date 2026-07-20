@@ -4,17 +4,15 @@ INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.2
 
 aws ec2 describe-instances --instance-ids $INSTANCE_ID \
   --query 'Reservations[0].Instances[0].KeyName' --output text
-
 # KeyPair Check
 
-
-if None then create one
+#if None then create one
 aws ec2 create-key-pair --key-name ess-cluster-key \
   --query 'KeyMaterial' --output text > ~/ess-cluster-key.pem
 chmod 400 ~/ess-cluster-key.pem
-
 ```
 
+```
 TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 MAC=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/mac)
 VPC_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/network/interfaces/macs/$MAC/vpc-id)
