@@ -7,7 +7,8 @@ aws ec2 describe-instances --instance-ids $INSTANCE_ID \
 
 # KeyPair Check
 
-# if None then create one
+
+if None then create one
 aws ec2 create-key-pair --key-name ess-cluster-key \
   --query 'KeyMaterial' --output text > ~/ess-cluster-key.pem
 chmod 400 ~/ess-cluster-key.pem
