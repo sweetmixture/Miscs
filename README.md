@@ -1,4 +1,33 @@
 ```
+# Write ParallelCluster Config File
+
+cat << 'EOF' > ~/cluster-config.yaml
+Region: <아까 나온 리전, 예: ap-northeast-2>
+Image:
+  Os: alinux2
+HeadNode:
+  InstanceType: t3.medium
+  Networking:
+    SubnetId: <SUBNET_ID>
+  Ssh:
+    KeyName: SBI_KLS_KEY
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: ess-queue
+      ComputeResources:
+        - Name: ess-compute
+          InstanceType: c5.9xlarge
+          MinCount: 0
+          MaxCount: 30
+      Networking:
+        SubnetIds:
+          - <SUBNET_ID>
+EOF
+
+```
+
+```
 # Region check
 TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region
