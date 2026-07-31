@@ -72,8 +72,6 @@ mc alias list "$ALIAS"
 mc ls "$ALIAS" >/dev/null 2>&1 \
   && echo "[+] Connection OK" \
   || echo "[!] Connection failed - check endpoint, keys, and permissions."
-
-
 ```
 
 ```
