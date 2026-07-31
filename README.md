@@ -1,12 +1,12 @@
 ```
 #!/usr/bin/env bash
 #
-# setup-mc.sh — jq + mc 설치 후 ~/.mc/config.json 자동 생성
+# setup-mc.sh - Install jq + mc, then generate ~/.mc/config.json
 #
-# 사용법:
+# Usage:
 #   ./setup-mc.sh <ACCESS_KEY> <SECRET_KEY> [ENDPOINT] [ALIAS]
 #
-# 예시:
+# Examples:
 #   ./setup-mc.sh AKIA... secret...
 #   ./setup-mc.sh minioadmin minioadmin http://192.168.0.10:9000 myminio
 
@@ -18,7 +18,7 @@ ENDPOINT="${3:-https://s3.amazonaws.com}"
 ALIAS="${4:-s3}"
 
 if [[ -z "$ACCESS_KEY" || -z "$SECRET_KEY" ]]; then
-  echo "사용법: $0 <ACCESS_KEY> <SECRET_KEY> [ENDPOINT] [ALIAS]" >&2
+  echo "Usage: $0 <ACCESS_KEY> <SECRET_KEY> [ENDPOINT] [ALIAS]" >&2
   exit 1
 fi
 
@@ -27,21 +27,21 @@ SUDO=""; [[ $EUID -ne 0 ]] && SUDO="sudo"
 CONFIG_DIR="$HOME/.mc"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
-# 1) jq 설치
+# 1) Install jq
 if ! command -v jq >/dev/null 2>&1; then
-  echo "[+] jq 설치 중..."
+  echo "[+] Installing jq..."
   $SUDO apt-get update -qq
   $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq jq curl ca-certificates
 fi
 
-# 2) mc 설치
+# 2) Install mc
 if ! mc --version 2>/dev/null | grep -qi minio; then
   case "$(uname -m)" in
     x86_64)        ARCH=amd64 ;;
     aarch64|arm64) ARCH=arm64 ;;
-    *) echo "[x] 지원하지 않는 아키텍처: $(uname -m)" >&2; exit 1 ;;
+    *) echo "[x] Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
   esac
-  echo "[+] mc 설치 중 (linux-$ARCH)..."
+  echo "[+] Installing mc (linux-$ARCH)..."
   curl -fsSL -o /tmp/mc "https://dl.min.io/client/mc/release/linux-${ARCH}/mc"
   $SUDO install -m 0755 /tmp/mc /usr/local/bin/mc
   rm -f /tmp/mc
@@ -49,7 +49,7 @@ fi
 
 mc --version | head -n1
 
-# 3) config.json 작성
+# 3) Write config.json
 umask 077
 mkdir -p "$CONFIG_DIR"
 chmod 700 "$CONFIG_DIR"
@@ -65,13 +65,13 @@ jq -n --argjson base "$BASE" \
 ' > "$CONFIG_FILE"
 
 chmod 600 "$CONFIG_FILE"
-echo "[+] 저장 완료: $CONFIG_FILE"
+echo "[+] Saved: $CONFIG_FILE"
 
-# 4) 확인
+# 4) Verify
 mc alias list "$ALIAS"
 mc ls "$ALIAS" >/dev/null 2>&1 \
-  && echo "[+] 연결 정상" \
-  || echo "[!] 연결 실패 — 엔드포인트/키/권한을 확인하세요."
+  && echo "[+] Connection OK" \
+  || echo "[!] Connection failed - check endpoint, keys, and permissions."
 
 
 ```
