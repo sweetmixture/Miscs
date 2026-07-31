@@ -178,6 +178,185 @@ log "완료. 사용 예: $MC ls $MINIO_ALIAS"
 ```
 
 ```
+#!/usr/bin/env bash
+#
+# setup-mc.sh
+#   - jq 설치 (apt)
+#   - MinIO Client(mc) 설치 (공식 바이너리)
+#   - ~/.mc/config.json 자동 생성 (MinIO alias + AWS S3 alias)
+#
+# 사용법:
+#   MINIO_URL=http://192.168.0.10:9000 \
+#   MINIO_ACCESS_KEY=xxx MINIO_SECRET_KEY=yyy \
+#   S3_ACCESS_KEY=AKIA... S3_SECRET_KEY=zzz \
+#   ./setup-mc.sh
+#
+# 환경변수를 안 주면 실행 중 프롬프트로 물어봅니다.
+
+set -euo pipefail
+
+# ── 설정값 (환경변수로 덮어쓰기 가능) ────────────────────────────
+MC_BIN_DIR="${MC_BIN_DIR:-/usr/local/bin}"
+MC_BIN_NAME="${MC_BIN_NAME:-mc}"          # midnight commander와 겹치면 mcli 로 변경
+MC_CONFIG_DIR="${MC_CONFIG_DIR:-$HOME/.mc}"
+CONFIG_FILE="$MC_CONFIG_DIR/config.json"
+
+MINIO_ALIAS="${MINIO_ALIAS:-myminio}"
+MINIO_URL="${MINIO_URL:-}"
+MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-}"
+MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-}"
+
+S3_ALIAS="${S3_ALIAS:-s3}"
+S3_URL="${S3_URL:-https://s3.amazonaws.com}"
+S3_ACCESS_KEY="${S3_ACCESS_KEY:-}"
+S3_SECRET_KEY="${S3_SECRET_KEY:-}"
+
+# ── 유틸 ────────────────────────────────────────────────────────
+log()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
+
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+  command -v sudo >/dev/null 2>&1 || die "root가 아니고 sudo도 없습니다."
+  SUDO="sudo"
+fi
+
+ask() {                       # ask <변수명> <프롬프트> [secret]
+  local __var=$1 __prompt=$2 __secret=${3:-} __val
+  if [[ -n "${!__var}" ]]; then return 0; fi
+  if [[ ! -t 0 ]]; then die "$__var 값이 없습니다. 환경변수로 지정하세요."; fi
+  if [[ -n "$__secret" ]]; then
+    read -r -s -p "$__prompt: " __val; echo
+  else
+    read -r -p "$__prompt: " __val
+  fi
+  [[ -n "$__val" ]] || die "$__var 는 필수입니다."
+  printf -v "$__var" '%s' "$__val"
+}
+
+# ── 1. jq 설치 ──────────────────────────────────────────────────
+if command -v jq >/dev/null 2>&1; then
+  log "jq 이미 설치됨 ($(jq --version))"
+else
+  log "jq 설치 중..."
+  $SUDO apt-get update -qq
+  $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq jq curl ca-certificates
+  log "jq 설치 완료 ($(jq --version))"
+fi
+
+# ── 2. mc 설치 ──────────────────────────────────────────────────
+# Midnight Commander 충돌 확인
+if command -v mc >/dev/null 2>&1 && ! mc --version 2>/dev/null | grep -qi minio; then
+  warn "기존 'mc'가 MinIO client가 아닙니다 (Midnight Commander로 보임)."
+  MC_BIN_NAME="mcli"
+  warn "MinIO client를 '$MC_BIN_NAME' 이름으로 설치합니다."
+fi
+
+MC="$MC_BIN_DIR/$MC_BIN_NAME"
+
+if [[ -x "$MC" ]] && "$MC" --version 2>/dev/null | grep -qi minio; then
+  log "mc 이미 설치됨: $MC"
+else
+  case "$(uname -m)" in
+    x86_64)          MC_ARCH=amd64 ;;
+    aarch64|arm64)   MC_ARCH=arm64 ;;
+    *) die "지원하지 않는 아키텍처: $(uname -m)" ;;
+  esac
+
+  log "mc 다운로드 중 (linux-$MC_ARCH)..."
+  TMP_MC="$(mktemp)"
+  trap 'rm -f "$TMP_MC"' EXIT
+  curl -fsSL -o "$TMP_MC" \
+    "https://dl.min.io/client/mc/release/linux-${MC_ARCH}/mc" \
+    || die "다운로드 실패 — 네트워크/프록시를 확인하세요."
+
+  chmod +x "$TMP_MC"
+  $SUDO install -m 0755 "$TMP_MC" "$MC"
+  log "mc 설치 완료: $MC"
+fi
+
+"$MC" --version | head -n1
+
+# ── 3. 인증정보 수집 ────────────────────────────────────────────
+ask MINIO_URL        "MinIO 엔드포인트 (예: http://192.168.0.10:9000)"
+ask MINIO_ACCESS_KEY "MinIO Access Key"
+ask MINIO_SECRET_KEY "MinIO Secret Key" secret
+
+if [[ -z "$S3_ACCESS_KEY" || -z "$S3_SECRET_KEY" ]]; then
+  if [[ -t 0 ]]; then
+    read -r -p "AWS S3 alias도 등록할까요? [y/N]: " _yn
+    if [[ "${_yn,,}" == "y" ]]; then
+      ask S3_ACCESS_KEY "AWS Access Key ID"
+      ask S3_SECRET_KEY "AWS Secret Access Key" secret
+    fi
+  fi
+fi
+
+# ── 4. config.json 생성 ─────────────────────────────────────────
+umask 077
+mkdir -p "$MC_CONFIG_DIR"
+chmod 700 "$MC_CONFIG_DIR"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  BACKUP="$CONFIG_FILE.bak.$(date +%Y%m%d%H%M%S)"
+  cp -p "$CONFIG_FILE" "$BACKUP"
+  log "기존 설정 백업: $BACKUP"
+  BASE_JSON="$(cat "$CONFIG_FILE")"
+else
+  BASE_JSON='{"version":"10","aliases":{}}'
+fi
+
+NEW_JSON="$(
+  jq -n \
+    --argjson base "$BASE_JSON" \
+    --arg ma "$MINIO_ALIAS" --arg mu "$MINIO_URL" \
+    --arg mak "$MINIO_ACCESS_KEY" --arg msk "$MINIO_SECRET_KEY" \
+    --arg sa "$S3_ALIAS" --arg su "$S3_URL" \
+    --arg sak "$S3_ACCESS_KEY" --arg ssk "$S3_SECRET_KEY" '
+    ($base | .version = "10" | .aliases //= {})
+    | .aliases[$ma] = {
+        url: $mu, accessKey: $mak, secretKey: $msk,
+        api: "S3v4", path: "auto"
+      }
+    | if ($sak | length) > 0 then
+        .aliases[$sa] = {
+          url: $su, accessKey: $sak, secretKey: $ssk,
+          api: "S3v4", path: "auto"
+        }
+      else . end
+  '
+)" || die "config.json 생성 실패 (jq)"
+
+printf '%s\n' "$NEW_JSON" > "$CONFIG_FILE"
+chmod 600 "$CONFIG_FILE"
+log "설정 저장: $CONFIG_FILE (600)"
+
+# ── 5. 검증 ─────────────────────────────────────────────────────
+log "등록된 alias:"
+"$MC" alias list | sed 's/^/    /'
+
+log "연결 테스트: $MINIO_ALIAS"
+if "$MC" ls "$MINIO_ALIAS" >/dev/null 2>&1; then
+  log "MinIO 연결 정상"
+else
+  warn "MinIO 연결 실패 — URL/키/방화벽을 확인하세요."
+  warn "자체서명 인증서라면: $MC --insecure ls $MINIO_ALIAS"
+fi
+
+if [[ -n "$S3_ACCESS_KEY" ]]; then
+  log "연결 테스트: $S3_ALIAS"
+  "$MC" ls "$S3_ALIAS" >/dev/null 2>&1 \
+    && log "S3 연결 정상" \
+    || warn "S3 연결 실패 — 키/리전/권한을 확인하세요."
+fi
+
+echo
+log "완료. 사용 예: $MC ls $MINIO_ALIAS"
+
+```
+
+```
 # Write ParallelCluster Config File
 
 cat << 'EOF' > ~/cluster-config.yaml
