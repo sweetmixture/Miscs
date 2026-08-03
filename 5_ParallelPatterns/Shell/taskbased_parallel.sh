@@ -23,6 +23,7 @@ run_parallel() {
     # ASSIGN AVAILABLE SLOTS
     for ((slot=0; slot<MAX_PARALLEL; slot++)); do
         free_slots+=("$slot")
+    done
 
     # PID > SLOT MAPPING
     declare -A pid_to_slot
