@@ -5,9 +5,9 @@
 # NODE-WISE PARALLELISM ; SHELL INTERFACING EXAMPLE
 # -----------------------------------------------------------------
 
-export MAX_PARALLEL=
-export CORES_PER_JOB=
-export REQUEST_DATE=
+export MAX_PARALLEL=6
+export CORES_PER_JOB=6
+export REQUEST_DATE="20260731"
 
 run_parallel() {
 
@@ -51,12 +51,12 @@ run_parallel() {
         # ALLOCATE FIRST AVAILABLE SLOTS
         # ---------------------------------------------
         slot="${free_slots[0]}"
-        free_slot=("${free_slots[@]:1}")
+        free_slots=("${free_slots[@]:1}")
         # "${free_slots[@}" : ALL ELEMENTS // ("${free_slots[@]:1}") WHERE ':1' TRIM THE ARRAY AND KEEP IT FROM THE ELEMENT '1'
 
         local cpu_start=$((slot*CORES_PER_JOB))
 
-        IFS='|' read -r PTASKCODE TASKID OPTIONPATH PARAMETERPATH <<< "line"
+        IFS='|' read -r PTASKCODE TASKID OPTIONPATH PARAMETERPATH <<< "$line"
         # TASKID-WISE LOGGING
         # > SEPERATE OUTPUTS OF "process_bms()"
         process_bms "$line" "$update_time" "$cpu_start" "$REQUEST_DATE" \
@@ -81,7 +81,7 @@ run_parallel() {
         wait -n
         for pid in "${!pid_to_slot[@]}"; do
             if ! kill -0 "$pid"  2>/dev/null; then
-                echo " [DONE ] PID=$pid SLOT=${pid_toslot[$pid]}"
+                echo " [DONE ] PID=$pid SLOT=${pid_to_slot[$pid]}"
                 unset pid_to_slot["$pid"]
             fi
         done
